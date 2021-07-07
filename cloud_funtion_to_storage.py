@@ -1,8 +1,9 @@
 import base64
 import logging
-import pandas as pd
+from pandas import DataFrame
 import json
 from google.cloud.storage import Client
+import time
 
 
 class LoadToStorage:
@@ -13,20 +14,21 @@ class LoadToStorage:
 
     def getMsgData(self) -> str:
         logging.info("Function triggered, retrieving data")
-        if data in self.event:
-            message_chunk=base64.b64decode(self.event['Data']).decode('utf-8')
+        if "data" in self.event:
+            message_chunk=base64.b64decode(self.event["data"]).decode('utf-8')
             logging.info("Datapoint validated")
             return message_chunk
         else:
             logging.error("No data found")
 
-    def payloadToDf(self,message:str) -> pd.DataFrame:
+    def payloadToDf(self,message:str):
         try:
-            df=pd.DataFrame(json.loads(message))
+            df=DataFrame(json.loads(message))
             if not df.empty:
                 logging.info("DF created")
             else:
                 logging.info("Empty DF created")
+            return df
         except Exception as e:
             logging.error(f"Error creating DF {str(e)}")
             raise
@@ -48,6 +50,7 @@ def hello_pubsub(event, context):
          context (google.cloud.functions.Context): Metadata for the event.
     """
     logging.basicConfig(level=logging.INFO)
+    logging.info("Started Service")
     service=LoadToStorage(event,context)
     message=service.getMsgData()
     df=service.payloadToDf(message)
